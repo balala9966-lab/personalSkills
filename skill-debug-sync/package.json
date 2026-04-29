@@ -1,0 +1,32 @@
+{
+  "name": "@your-scope/skill-debug-sync",
+  "version": "1.1.0",
+  "description": "一键将 skill 同步到所有已安装的 AI 编程工具，实现跨平台调试",
+  "main": "scripts/sync_skill.py",
+  "scripts": {
+    "sync": "python3 scripts/sync_skill.py",
+    "status": "python3 scripts/sync_skill.py --status",
+    "unlink": "python3 scripts/sync_skill.py --unlink",
+    "detect": "python3 scripts/sync_skill.py --detect-dirs",
+    "list": "python3 scripts/sync_skill.py --list-skills"
+  },
+  "keywords": [
+    "skill",
+    "sync",
+    "debug",
+    "claude-code",
+    "codex-cli",
+    "codex-engine",
+    "windsurf",
+    "codefuse",
+    "openclaw",
+    "opencode",
+    "homiclaw",
+    "agents"
+  ],
+  "author": "yushu",
+  "license": "MIT",
+  "engines": {
+    "python": ">=3.8"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "skill-store-manager",
+  "version": "0.1.0",
+  "description": "本地 Skill 中央仓库 + 软链接分发管理工具，支持 install/uninstall/update/adopt 全生命周期管理（local/git/private-npm/url 多源）",
+  "main": "scripts/skillctl.py",
+  "bin": {
+    "skillctl": "scripts/skillctl.py"
+  },
+  "scripts": {
+    "skillctl": "python3 scripts/skillctl.py",
+    "install-skill": "python3 scripts/skillctl.py install",
+    "uninstall-skill": "python3 scripts/skillctl.py uninstall",
+    "update-skill": "python3 scripts/skillctl.py update",
+    "adopt": "python3 scripts/skillctl.py adopt",
+    "list": "python3 scripts/skillctl.py list",
+    "store": "python3 scripts/skillctl.py store",
+    "detect": "python3 scripts/skillctl.py detect",
+    "status": "python3 scripts/skillctl.py status",
+    "test": "bash scripts/tests/test_basic.sh"
+  },
+  "keywords": [
+    "skill",
+    "skill-store",
+    "skill-manager",
+    "package-manager",
+    "symlink",
+    "claude-code",
+    "codex-cli",
+    "codex-engine",
+    "windsurf",
+    "codefuse",
+    "openclaw",
+    "opencode",
+    "homiclaw",
+    "agents",
+    "cursor"
+  ],
+  "author": "yushu",
+  "license": "MIT",
+  "engines": {
+    "python": ">=3.8"
+  }
+}
