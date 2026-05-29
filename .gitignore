@@ -41,6 +41,11 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# ===== Web (start.sh) venv & sentinel =====
+.venv/
+.venv-*/
+venv/
+
 # ===== IDE =====
 .idea/
 .vscode/

@@ -1,0 +1,75 @@
+{
+  "kb_name": "",
+  "kb_root": "",
+  "created_at": "",
+  "last_updated": "",
+  "description": "",
+  "version": "2.0.0",
+  "storage_type": "git",
+  "git_remote": null,
+  "source_registry": [],
+  "adapter_configs": {
+    "yuque": { "enabled": false, "last_sync": null },
+    "feishu": { "enabled": false, "last_sync": null },
+    "web": { "enabled": true },
+    "youtube": { "enabled": true },
+    "arxiv": { "enabled": true },
+    "rss": { "enabled": true },
+    "jupyter": { "enabled": true },
+    "pptx": { "enabled": true },
+    "csv": { "enabled": true },
+    "local-markdown": { "enabled": true },
+    "local-pdf": { "enabled": true },
+    "local-docx": { "enabled": true },
+    "github": { "enabled": true },
+    "git": { "enabled": true }
+  },
+  "source_registry_entry_template": {
+    "source_id": "adapter/source-name",
+    "adapter": "adapter-name",
+    "sha256": "content-hash",
+    "preservation": "local|link",
+    "ingested_at": "ISO-8601",
+    "wiki_pages": ["entities/name.md"],
+    "status": "active|unreachable|updated|new",
+    "url": "original-url-or-path"
+  },
+  "code_repos": [],
+  "wiki_stats": {
+    "total_pages": 2,
+    "entities": 0,
+    "concepts": 0,
+    "topics": 0,
+    "sources": 0,
+    "analyses": 0,
+    "syntheses": 0,
+    "maps": 0,
+    "code_architecture": 0,
+    "code_modules": 0,
+    "code_interfaces": 0,
+    "code_data_models": 0,
+    "code_flows": 0,
+    "code_contracts": 0,
+    "changelog": 0
+  },
+  "graph_stats": {
+    "total_nodes": 0,
+    "total_edges": 0,
+    "extracted_edges": 0,
+    "inferred_edges": 0,
+    "ambiguous_edges": 0,
+    "last_generated": null
+  },
+  "sync_targets": [],
+  "qmd": {
+    "installed": false,
+    "collection_name": "",
+    "last_embed": null
+  },
+  "lint_stats": {
+    "last_lint": null,
+    "issues_found": 0,
+    "issues_fixed": 0
+  },
+  "changelog": []
+}

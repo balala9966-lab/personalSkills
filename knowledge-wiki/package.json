@@ -1,0 +1,27 @@
+{
+  "name": "@antskill/knowledge-wiki",
+  "version": "1.0.0",
+  "description": "统一知识库构建器，融合 LLM Wiki 方法论与代码仓库深度分析。支持多源摄入、代码知识提取、语义检索、健康检查、探索发现、增量更新、Git 云同步。",
+  "author": "yushu",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "agent-skill-installer install",
+    "preuninstall": "agent-skill-installer uninstall"
+  },
+  "dependencies": {
+    "@agentskill/installer": "latest"
+  },
+  "skillConfig": {
+    "name": "knowledge-wiki",
+    "targets": [
+      { "tool": "claude-code", "path": ".claude/skills" },
+      { "tool": "codefuse", "path": ".codefuse/fuse/skills" }
+    ],
+    "files": {
+      "SKILL.md": "SKILL.md",
+      "scripts": "scripts/",
+      "references": "references/",
+      "templates": "templates/"
+    }
+  }
+}
