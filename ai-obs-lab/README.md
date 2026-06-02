@@ -75,8 +75,10 @@ claude-obs                      # 交互式 Claude Code，全程被观测
 claude-obs -p "你的问题"         # 单次
 cfuse-obs                       # 交互式 CodeFuse，全程被观测
 
-obs report                      # 打开今天的 HTML 报告（含上下文面板）
-obs tail                        # 实时看请求流水
+obs live                        # 启动实时观测看板（浏览器自动刷新，推荐）
+obs mcp -- <你的 mcp 命令...>    # 包一层 stdio MCP server，抓取 JSON-RPC
+obs report                      # 生成静态 HTML 快照报告（含上下文面板）
+obs tail                        # 终端实时打印请求流水
 obs status                      # 代理状态
 obs stop                        # 停止后台代理
 ```
@@ -170,7 +172,56 @@ side-by-side with a sample output diff.
 Write your own suite — see `eval/suites/json-extract.example.yaml`. Required
 keys: `name`, `upstream`, `model`, `versions[]`, `cases[]`.
 
-## The dashboard
+## 实时观测看板（推荐）
+
+静态 `report` 是"快照"，需要手动刷新。如果你想**边跑边看**——新请求几秒内
+自动出现、点开就能看完整上下文——用实时看板：
+
+```bash
+obs live                       # 起看板 + 自动开浏览器（http://127.0.0.1:8799）
+# 或显式：
+PYTHONPATH=ai-obs-lab/src python3 -m ai_obs_lab.cli serve --port 8799 --open
+```
+
+它是一个常驻的 stdlib HTTP 服务，前端每 3 秒轮询 `/api/snapshot`：
+
+- **新 trace 自动插到表格顶部并闪烁高亮**，无需手动刷新
+- 点击任意一行，按需向 `/api/trace/<id>` 懒加载详情，渲染**上下文面板**
+  （system / tools 菜单 / messages 分层 + token 占比），避免一次性把所有
+  body 塞进页面
+- 「工具与 MCP」tab 同时展示流式响应里提取的工具调用统计，以及下文 stdio
+  MCP 抓取到的 JSON-RPC 会话
+
+界面为中文，但 **trace 原文、headers、JSON、参数名（如 `tokens_in`）、模型名、
+状态码一律保持原样不翻译**。
+
+## 抓取 stdio MCP（理解 MCP 工作原理）
+
+HTTP 代理只能看到基于 HTTP 的 MCP。大量 MCP server 走的是 **stdio**（标准
+输入输出），代理看不到。为此提供一个通用 wrapper，把它包在任意 stdio MCP
+server 外层，透明转发的同时把每一帧 JSON-RPC tee 到 store：
+
+```bash
+obs mcp -- npx -y @modelcontextprotocol/server-filesystem /tmp
+# 或显式：
+PYTHONPATH=ai-obs-lab/src python3 -m ai_obs_lab.cli mcp -- <真实 mcp server 命令...>
+```
+
+把上面的 wrapper 命令配到你的 MCP client（如 Claude Code 的 mcpServers）里
+替换原命令即可。原理：
+
+```
+client --stdin--> [obs mcp wrapper] --stdin--> 真实 MCP server
+client <-stdout-- [obs mcp wrapper] <-stdout-- 真实 MCP server
+```
+
+两个方向各起一个转发线程，逐帧透明转发、不改协议，同时把合法 JSON-RPC 帧
+（`initialize` / `tools/list` / `tools/call` / `result` …）落盘到
+`logs/<date>/mcp/<session>.jsonl`，再由实时看板「工具与 MCP」tab 展示：你能
+看到 server 暴露了哪些工具菜单、每次 `tools/call` 传了什么 params、返回了什么
+result、各自耗时。非 JSON 行（server 的日志）只透传不落盘，不破坏协议。
+
+## 静态 HTML 报告
 
 ```bash
 bash start.sh report           # today
@@ -214,9 +265,12 @@ server, no fetch, opens with `file://`.
         ├── summary.jsonl     # one TraceSummary per line
         ├── eval_runs.jsonl   # one EvalRun per line
         ├── judge_results.jsonl
-        └── traces/
-            ├── <trace_id>.json        # full TraceFull
-            └── <trace_id>.body.json   # request body sidecar if >256KB
+        ├── traces/
+        │   ├── <trace_id>.json        # full TraceFull
+        │   └── <trace_id>.body.json   # request body sidecar if >256KB
+        └── mcp/
+            ├── <session>.jsonl        # stdio MCP 的 JSON-RPC 帧（每行一帧）
+            └── <session>.meta.json    # 会话元信息（命令、起始时间）
 ```
 
 Wipe it any time: `rm -rf ~/.ai-obs-lab/logs`.
@@ -234,21 +288,19 @@ ai-obs-lab/
 ├── config/
 │   └── proxy.example.yaml
 ├── src/ai_obs_lab/
-│   ├── cli.py                      # python -m ai_obs_lab.cli {proxy|eval|report|tail|version}
-│   ├── core/{models,store}.py
-│   ├── proxy/{server,sse_parser}.py
+│   ├── cli.py                      # python -m ai_obs_lab.cli {proxy|eval|report|tail|serve|mcp|version}
+│   ├── core/{models,store}.py      # store 含 stdio MCP 帧的 append/iter
+│   ├── proxy/{server,sse_parser,mcp_stdio}.py   # mcp_stdio = stdio MCP wrapper
 │   ├── eval/{runner,judge,metrics}.py + suites/
-│   └── dashboard/{query,html,tail}.py
-└── tests/                          # stdlib unittest
+│   └── dashboard/{query,html,tail,server}.py    # server = 实时看板 HTTP 服务
+└── tests/                          # stdlib unittest（含 test_server / test_mcp_stdio）
 ```
 
 ## What's NOT here yet (Roadmap → Phase 2 candidates)
 
-- **stdio MCP wrapper** — current proxy only catches HTTP-based MCP (e.g.
-  WebSocket gateways). For stdio servers, wrap the binary with a small launcher
-  that tees JSON-RPC frames to the store.
 - **FastAPI Web UI** — `dashboard/query.py` is already pure and stdlib-only so
-  Phase 2 just adds a thin FastAPI layer over it.
+  Phase 2 just adds a thin FastAPI layer over it.（注：实时看板 `obs live` 已用
+  stdlib `http.server` 实现了核心诉求，Phase 2 仅做框架升级。）
 - **DuckDB/SQLite store** — `core.store.Store` is a Protocol; swap the
   implementation when JSONL gets too big to scan.
 - **Parallel eval execution** — runner is currently sequential.

@@ -24,7 +24,7 @@ _HTML_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>ai-obs-lab report</title>
+<title>AI 观测实验台 · 报告</title>
 <style>
   :root {
     --bg: #0f1115; --fg: #e6e6e6; --muted: #9aa3af; --card: #161a22;
@@ -93,26 +93,26 @@ _HTML_TEMPLATE = """<!doctype html>
 </head>
 <body>
 <header>
-  <h1>ai-obs-lab</h1>
-  <span class="meta">generated <span id="gen-at"></span> · range <span id="range"></span></span>
+  <h1>AI 观测实验台</h1>
+  <span class="meta">生成于 <span id="gen-at"></span> · 范围 <span id="range"></span></span>
 </header>
 <nav>
-  <button data-tab="traces" class="active">Traces</button>
-  <button data-tab="evals">Evals</button>
-  <button data-tab="tools">Tools / MCP</button>
+  <button data-tab="traces" class="active">请求追踪</button>
+  <button data-tab="evals">评测对比</button>
+  <button data-tab="tools">工具与 MCP</button>
 </nav>
 <main>
   <section id="tab-traces" class="panel active">
     <div class="grid kpi" id="kpis"></div>
     <div class="card" style="margin-top:12px">
-      <h3>Recent traces</h3>
+      <h3>最近请求（点击行查看完整上下文）</h3>
       <div style="max-height: 60vh; overflow: auto">
         <table id="traces-table">
           <thead>
             <tr>
-              <th>time</th><th>client</th><th>upstream</th><th>model</th>
-              <th>status</th><th class="number">ttft</th><th class="number">total</th>
-              <th class="number">tok in/out</th><th class="number">tools</th><th>path</th>
+              <th>时间</th><th>客户端</th><th>上游</th><th>模型</th>
+              <th>状态</th><th class="number">首字延迟</th><th class="number">总耗时</th>
+              <th class="number">token 入/出</th><th class="number">工具数</th><th>路径</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -148,12 +148,12 @@ function esc(s) {
 function renderKPIs() {
   const o = DATA.overview || {};
   const cards = [
-    ["Total traces", o.total ?? 0],
-    ["Errors", o.errors ?? 0],
-    ["Avg TTFT", fmtMs(o.avg_ttft_ms)],
-    ["Tokens in", o.tokens_in_total ?? 0],
-    ["Tokens out", o.tokens_out_total ?? 0],
-    ["Tool calls", o.tool_call_total ?? 0],
+    ["总请求数", o.total ?? 0],
+    ["错误数", o.errors ?? 0],
+    ["平均首字延迟", fmtMs(o.avg_ttft_ms)],
+    ["token 输入", o.tokens_in_total ?? 0],
+    ["token 输出", o.tokens_out_total ?? 0],
+    ["工具调用次数", o.tool_call_total ?? 0],
   ];
   document.getElementById("kpis").innerHTML = cards.map(
     ([k, v]) => `<div class="card"><h3>${esc(k)}</h3><div class="v">${esc(v)}</div></div>`
@@ -163,7 +163,7 @@ function renderKPIs() {
 function renderTraces() {
   const tbody = document.querySelector("#traces-table tbody");
   if (!DATA.traces || !DATA.traces.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty">No traces in range.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty">该时间范围暂无请求。</td></tr>`;
     return;
   }
   tbody.innerHTML = DATA.traces.map((t, i) => {
@@ -188,21 +188,21 @@ function renderTraces() {
 
 function renderContext(ctx) {
   if (!ctx || !ctx.available) {
-    return `<h4>Context</h4><div class="small">no structured context (non-JSON body or unsupported format)</div>`;
+    return `<h4>上下文</h4><div class="small">无结构化上下文（请求体非 JSON 或格式不支持）</div>`;
   }
   const tb = ctx.token_breakdown || {};
   // token 占比条：system / tools / messages，让你直观看到上下文被什么填满
   const bar = `
-    <div class="ctxbar" title="estimated token breakdown">
+    <div class="ctxbar" title="估算 token 占比">
       <span class="seg seg-sys" style="width:${tb.system_pct || 0}%"></span>
       <span class="seg seg-tool" style="width:${tb.tools_pct || 0}%"></span>
       <span class="seg seg-msg" style="width:${tb.messages_pct || 0}%"></span>
     </div>
     <div class="small">
-      ~${tb.total_estimated || 0} tok ·
-      <span class="dot dot-sys"></span> system ${tb.system || 0} (${tb.system_pct || 0}%) ·
-      <span class="dot dot-tool"></span> tools ${tb.tools || 0} (${tb.tools_pct || 0}%) ·
-      <span class="dot dot-msg"></span> messages ${tb.messages || 0} (${tb.messages_pct || 0}%)
+      约 ${tb.total_estimated || 0} token ·
+      <span class="dot dot-sys"></span> 系统提示 ${tb.system || 0} (${tb.system_pct || 0}%) ·
+      <span class="dot dot-tool"></span> 工具菜单 ${tb.tools || 0} (${tb.tools_pct || 0}%) ·
+      <span class="dot dot-msg"></span> 历史消息 ${tb.messages || 0} (${tb.messages_pct || 0}%)
     </div>`;
 
   // tools 菜单：这就是 skill / MCP 暴露给模型的"菜单"
@@ -210,12 +210,12 @@ function renderContext(ctx) {
     `<details><summary>
         <span class="badge badge-${esc(t.origin.split('(')[0])}">${esc(t.origin)}</span>
         <b>${esc(t.name)}</b>
-        <span class="small">· desc ~${t.description_tokens}tok · schema ~${t.schema_tokens}tok</span>
+        <span class="small">· 描述约 ${t.description_tokens}t · Schema 约 ${t.schema_tokens}t</span>
       </summary>
       <div class="small" style="margin:4px 0">${esc(t.description)}</div>
       <pre>${esc(t.schema)}</pre>
     </details>`
-  ).join("") || `<div class="small">none</div>`;
+  ).join("") || `<div class="small">无</div>`;
 
   // messages 分层：token 主要被这部分吃掉
   const msgs = (ctx.messages || []).map(m => {
@@ -225,25 +225,25 @@ function renderContext(ctx) {
     const flagStr = flags.length ? ` <span class="badge">${flags.join(",")}</span>` : "";
     return `<details><summary>
         <span class="badge badge-role-${esc(m.role)}">${esc(m.role)}</span>
-        <span class="small">#${m.index} · ~${m.tokens}tok · ${m.chars} chars</span>${flagStr}
+        <span class="small">#${m.index} · 约 ${m.tokens}t · ${m.chars} 字符</span>${flagStr}
       </summary>
       <pre>${esc(m.preview)}</pre>
     </details>`;
-  }).join("") || `<div class="small">none</div>`;
+  }).join("") || `<div class="small">无</div>`;
 
   const sysText = (ctx.system && ctx.system.text) || "";
   const sysBlock = sysText
-    ? `<details><summary><span class="small">~${ctx.system.tokens}tok · ${ctx.system.chars} chars</span></summary><pre>${esc(sysText)}</pre></details>`
-    : `<div class="small">none</div>`;
+    ? `<details><summary><span class="small">约 ${ctx.system.tokens}t · ${ctx.system.chars} 字符</span></summary><pre>${esc(sysText)}</pre></details>`
+    : `<div class="small">无</div>`;
 
   return `
-    <h4>Context — 模型实际看到的全部内容</h4>
+    <h4>上下文 — 模型实际看到的全部内容</h4>
     ${bar}
-    <h4>System prompt</h4>
+    <h4>系统提示（System prompt）</h4>
     ${sysBlock}
-    <h4>Tools menu (${ctx.tools_count || 0}) — skill / MCP 暴露给模型的"菜单"</h4>
+    <h4>工具菜单（${ctx.tools_count || 0}）— skill / MCP 暴露给模型的"菜单"</h4>
     ${tools}
-    <h4>Messages (${ctx.messages_count || 0}) — 历史上下文分层</h4>
+    <h4>历史消息（${ctx.messages_count || 0}）— 上下文分层</h4>
     ${msgs}`;
 }
 
@@ -252,34 +252,34 @@ function showTrace(i) {
   const detail = DATA.trace_details ? DATA.trace_details[t.trace_id] : null;
   const root = document.getElementById("trace-detail");
   if (!detail) {
-    root.innerHTML = `<div class="detail"><div class="empty">trace detail not bundled (regenerate with --inline-details)</div></div>`;
+    root.innerHTML = `<div class="detail"><div class="empty">未内联 trace 详情（请用 --inline-details 重新生成）</div></div>`;
     return;
   }
   const chunks = (detail.chunks || []).map(c =>
     `<span class="chunk ${esc(c.kind)}" title="seq=${c.seq} @ ${c.ts_offset_ms.toFixed(0)}ms">${esc(c.kind === "pause" ? "⏸" + c.text : (c.text || c.kind))}</span>`
   ).join("");
   const tools = (detail.tool_calls || []).map(tc =>
-    `<details><summary>${esc(tc.name)} (${esc(tc.tool_id)}) ${tc.parsed_ok ? "" : "⚠ unparsed"}</summary><pre>${esc(tc.arguments_json)}</pre></details>`
-  ).join("") || `<div class="small">none</div>`;
+    `<details><summary>${esc(tc.name)} (${esc(tc.tool_id)}) ${tc.parsed_ok ? "" : "⚠ 未能解析"}</summary><pre>${esc(tc.arguments_json)}</pre></details>`
+  ).join("") || `<div class="small">无</div>`;
   const pauses = (detail.pauses_ms || []).length
     ? detail.pauses_ms.map(p => `<span class="badge">${p.toFixed(0)}ms</span>`).join(" ")
-    : `<span class="small">none</span>`;
+    : `<span class="small">无</span>`;
   root.innerHTML = `
     <div class="detail">
-      <h4>Trace ${esc(t.trace_id)}</h4>
+      <h4>请求 ${esc(t.trace_id)}</h4>
       <div class="small">${esc(t.client_hint)} → ${esc(t.upstream)} · ${esc(t.path)}</div>
       ${renderContext(detail.context)}
-      <h4>Pauses (&gt;800ms)</h4>
+      <h4>停顿点（&gt;800ms）</h4>
       <div>${pauses}</div>
-      <h4>Chunk timeline (${(detail.chunks || []).length} events)</h4>
-      <div class="chunks">${chunks || `<span class="small">no chunks</span>`}</div>
-      <h4>Tool calls</h4>
+      <h4>切词时间线（${(detail.chunks || []).length} 个事件）</h4>
+      <div class="chunks">${chunks || `<span class="small">无 chunks</span>`}</div>
+      <h4>工具调用</h4>
       ${tools}
-      <h4>Request body</h4>
+      <h4>请求体（原文）</h4>
       <pre>${esc(JSON.stringify(detail.request_body ?? detail.request_body_ref ?? "", null, 2))}</pre>
-      <h4>Request headers (redacted)</h4>
+      <h4>请求头（已脱敏）</h4>
       <pre>${esc(JSON.stringify(detail.request_headers || {}, null, 2))}</pre>
-      <h4>Response text</h4>
+      <h4>响应文本</h4>
       <pre>${esc(detail.response_text || "")}</pre>
     </div>`;
 }
@@ -287,7 +287,7 @@ function showTrace(i) {
 function renderEvals() {
   const root = document.getElementById("evals-root");
   if (!DATA.eval_runs || !DATA.eval_runs.length) {
-    root.innerHTML = `<div class="card empty">No eval runs in range.</div>`;
+    root.innerHTML = `<div class="card empty">该时间范围暂无评测记录。</div>`;
     return;
   }
   root.innerHTML = DATA.eval_runs.map(er => {
@@ -297,15 +297,15 @@ function renderEvals() {
     const cases = Object.keys(cmp.table);
     const tables = cases.map(caseId => {
       const versions = Object.keys(cmp.table[caseId]);
-      const head = `<tr><th>metric</th>${versions.map(v => `<th>${esc(v)}</th>`).join("")}</tr>`;
+      const head = `<tr><th>指标</th>${versions.map(v => `<th>${esc(v)}</th>`).join("")}</tr>`;
       const metrics = [
-        ["similarity_variance", "variance"],
-        ["schema_compliance_rate", "schema rate"],
-        ["keyword_hit_rate", "keyword rate"],
-        ["avg_logprob_top1", "logprob top1"],
-        ["avg_ttft_ms", "ttft (ms)"],
-        ["avg_tokens_out", "tokens out"],
-        ["errors", "errors"],
+        ["similarity_variance", "相似度方差"],
+        ["schema_compliance_rate", "Schema 合规率"],
+        ["keyword_hit_rate", "关键词命中率"],
+        ["avg_logprob_top1", "top1 对数概率"],
+        ["avg_ttft_ms", "首字延迟(ms)"],
+        ["avg_tokens_out", "输出 token"],
+        ["errors", "错误数"],
       ];
       const rows = metrics.map(([k, label]) => {
         const cells = versions.map(v => {
@@ -325,10 +325,10 @@ function renderEvals() {
       }).join("");
       const samples = versions.map(v => {
         const out = (cmp.table[caseId][v].sample_outputs || [])[0] || "";
-        return `<details><summary>${esc(v)} sample</summary><pre>${esc(out)}</pre></details>`;
+        return `<details><summary>${esc(v)} 输出示例</summary><pre>${esc(out)}</pre></details>`;
       }).join("");
       return `<div class="card" style="margin-top:8px">
-        <h3>case ${esc(caseId)}</h3>
+        <h3>用例 ${esc(caseId)}</h3>
         <table>${head}${rows}${judgeRows}</table>
         ${samples}
       </div>`;
@@ -346,15 +346,15 @@ function renderTools() {
   const tools = DATA.tools || {};
   const names = Object.keys(tools);
   if (!names.length) {
-    root.innerHTML = `<div class="card empty">No tool calls captured in range.</div>`;
+    root.innerHTML = `<div class="card empty">该时间范围暂无工具调用。</div>`;
     return;
   }
-  root.innerHTML = `<div class="card"><table>
-    <thead><tr><th>tool</th><th class="number">calls</th><th class="number">parse ok</th><th class="number">parse fail</th><th>sample args</th></tr></thead>
+  root.innerHTML = `<div class="card"><h3>工具调用统计（流式响应中提取）</h3><table>
+    <thead><tr><th>工具</th><th class="number">调用次数</th><th class="number">解析成功</th><th class="number">解析失败</th><th>参数示例</th></tr></thead>
     <tbody>${names.map(n => {
       const s = tools[n];
       const sample = (s.sample_arguments || [])
-        .map(a => `<details><summary>arg</summary><pre>${esc(a)}</pre></details>`).join("");
+        .map(a => `<details><summary>参数</summary><pre>${esc(a)}</pre></details>`).join("");
       return `<tr><td>${esc(n)}</td>
         <td class="number">${s.count}</td>
         <td class="number status-ok">${s.parsed_ok}</td>

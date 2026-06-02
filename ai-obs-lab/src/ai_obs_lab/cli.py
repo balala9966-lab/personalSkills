@@ -120,6 +120,29 @@ def _cmd_tail(args: argparse.Namespace) -> int:
     return tail_main(extra)
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    """实时观测看板（常驻 HTTP 服务，浏览器自动刷新）。"""
+    from .dashboard.server import run_server
+    from .core.store import JSONLStore
+    store = JSONLStore(args.log_dir) if args.log_dir else JSONLStore()
+    run_server(store, host=args.host, port=args.port, open_browser=args.open)
+    return 0
+
+
+def _cmd_mcp(args: argparse.Namespace) -> int:
+    """包一层 stdio MCP server，抓取其 JSON-RPC 交互。
+
+    用法：python -m ai_obs_lab.cli mcp -- <真实 mcp server 命令...>
+    """
+    from .proxy.mcp_stdio import run_mcp_wrapper
+    from .core.store import JSONLStore
+    store = JSONLStore(args.log_dir) if args.log_dir else JSONLStore()
+    if not args.command:
+        sys.stderr.write("[cli] 用法: ai_obs_lab.cli mcp -- <mcp server 命令...>\n")
+        return 2
+    return run_mcp_wrapper(args.command, store=store, label=args.label)
+
+
 def _cmd_version(_args: argparse.Namespace) -> int:
     sys.stdout.write(f"ai-obs-lab {__version__}\n")
     return 0
@@ -155,6 +178,20 @@ def build_parser() -> argparse.ArgumentParser:
     st = sub.add_parser("tail", help="Live-tail the trace summary log")
     st.add_argument("--log-dir", default=None)
     st.set_defaults(func=_cmd_tail)
+
+    ss = sub.add_parser("serve", help="实时观测看板（浏览器自动刷新）")
+    ss.add_argument("--port", type=int, default=8799)
+    ss.add_argument("--host", default="127.0.0.1")
+    ss.add_argument("--log-dir", default=None)
+    ss.add_argument("--open", action="store_true", help="启动后自动打开浏览器")
+    ss.set_defaults(func=_cmd_serve)
+
+    sm = sub.add_parser("mcp", help="包一层 stdio MCP server，抓取 JSON-RPC 交互")
+    sm.add_argument("--log-dir", default=None)
+    sm.add_argument("--label", default=None, help="会话标签（默认用命令名）")
+    sm.add_argument("command", nargs=argparse.REMAINDER,
+                    help="-- 之后是真实 mcp server 命令，例如：mcp -- npx some-mcp-server")
+    sm.set_defaults(func=_cmd_mcp)
 
     sv = sub.add_parser("version", help="Print version")
     sv.set_defaults(func=_cmd_version)

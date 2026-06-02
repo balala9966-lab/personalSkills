@@ -50,7 +50,11 @@ def tail_loop(store: JSONLStore, *, follow: bool = True, sleep_s: float = 0.5) -
     # Don't replay history on startup — start from end of file.
     if path.exists():
         offset = path.stat().st_size
-    sys.stderr.write(f"[ai-obs-lab tail] watching {path}\n")
+    sys.stderr.write(f"[ai-obs-lab 实时流] 正在监听 {path}\n")
+    sys.stderr.write(
+        "[ai-obs-lab 实时流] 列含义：时间 客户端 上游 状态 模型 "
+        "ttft=首字延迟 total=总耗时 tok=token入/出 tools=工具数 路径\n"
+    )
     try:
         while True:
             today = date.today()
@@ -58,7 +62,7 @@ def tail_loop(store: JSONLStore, *, follow: bool = True, sleep_s: float = 0.5) -
                 cur_day = today
                 path = _day_path(base, cur_day)
                 offset = 0
-                sys.stderr.write(f"[ai-obs-lab tail] day rolled over → {path}\n")
+                sys.stderr.write(f"[ai-obs-lab 实时流] 跨天切换 → {path}\n")
             if path.exists():
                 size = path.stat().st_size
                 if size < offset:
@@ -83,7 +87,7 @@ def tail_loop(store: JSONLStore, *, follow: bool = True, sleep_s: float = 0.5) -
                 return
             time.sleep(sleep_s)
     except KeyboardInterrupt:
-        sys.stderr.write("\n[ai-obs-lab tail] stopped\n")
+        sys.stderr.write("\n[ai-obs-lab 实时流] 已停止\n")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -41,11 +41,20 @@ Three pillars:
 2. **A/B Eval Runner** — YAML suite of `(version, case)` × N repeats, computes
    output-variance, JSON-schema compliance, keyword hit rate, logprobs top-1,
    TTFT / token stats. Optional LLM-as-Judge (4-axis rubric).
-3. **Static HTML Dashboard** — one self-contained file you can `open` offline.
-   Three tabs: trace timeline, eval comparison, tool-call / MCP panel. 每条
-   trace 详情含 **Context 面板**（system / tools 菜单含 MCP/builtin/skill 来源
-   标注 / messages 分层 + token 占比）+ chunk timeline + pause 高亮。这是理解
-   skill / MCP 工作原理的核心视图：看清模型实际"看到"了什么、token 被什么吃掉。
+3. **Live Dashboard + Static HTML Report** — 两种看板：
+   - **实时看板**（`obs live`，stdlib `http.server` on `127.0.0.1:8799`）：浏览器
+     每 3 秒轮询，**新 trace 自动插顶 + 闪烁高亮**，点行懒加载详情，边跑边看。
+   - **静态报告**（`obs report`）：单文件自包含 HTML，可离线 `open`，适合存档分享。
+   两者三个 tab：请求追踪、评测对比、工具与 MCP。每条 trace 详情含 **上下文面板**
+   （system / tools 菜单含 MCP/builtin/skill 来源标注 / messages 分层 + token 占比）
+   + 切词时间线 + pause 高亮。这是理解 skill / MCP 工作原理的核心视图：看清模型
+   实际"看到"了什么、token 被什么吃掉。**界面为中文，但 trace 原文 / JSON / 参数名
+   / 模型名 / 状态码保持原样不翻译。**
+4. **stdio MCP Wrapper** — `obs mcp -- <真实 mcp server 命令>` 把任意 stdio MCP
+   server 包在中间，双向透明转发 stdin/stdout 的同时把每帧 JSON-RPC
+   （`initialize` / `tools/list` / `tools/call` / `result` …）tee 到
+   `logs/<date>/mcp/<session>.jsonl`，由实时看板「工具与 MCP」tab 展示。这样
+   stdio MCP 的工具菜单与每次调用的 params/result 也可观测。
 
 ## How to invoke
 
@@ -58,7 +67,9 @@ echo 'source <repo>/ai-obs-lab/bin/obs.sh' >> ~/.zshrc && source ~/.zshrc
 # 照常用，命令加 -obs 后缀；原 claude / cfuse 不受影响：
 claude-obs              # 交互式 Claude Code，全程被观测
 cfuse-obs               # 交互式 CodeFuse，全程被观测
-obs report             # 打开含「上下文面板」的 HTML 报告
+obs live               # 启动实时观测看板（浏览器自动刷新，推荐）
+obs mcp -- <命令>      # 包一层 stdio MCP server，抓取 JSON-RPC
+obs report             # 生成静态 HTML 快照报告（含「上下文面板」）
 obs tail / obs status / obs stop
 ```
 
@@ -87,14 +98,18 @@ bash ai-obs-lab/start.sh report
 
 ## Key files
 
-- `src/ai_obs_lab/cli.py` — unified entry: `proxy | eval | report | tail`
-- `src/ai_obs_lab/proxy/server.py` — capture proxy
+- `src/ai_obs_lab/cli.py` — unified entry: `proxy | eval | report | tail | serve | mcp`
+- `src/ai_obs_lab/proxy/server.py` — capture proxy（HTTP 反向代理）
 - `src/ai_obs_lab/proxy/sse_parser.py` — Anthropic + OpenAI SSE parser
+- `src/ai_obs_lab/proxy/mcp_stdio.py` — stdio MCP wrapper（双向转发 + tee JSON-RPC 帧）
 - `src/ai_obs_lab/eval/runner.py` — eval engine
 - `src/ai_obs_lab/eval/judge.py` — LLM-as-Judge
-- `src/ai_obs_lab/dashboard/html.py` — static report generator
+- `src/ai_obs_lab/dashboard/server.py` — 实时看板 HTTP 服务（`obs live`）
+- `src/ai_obs_lab/dashboard/html.py` — static report generator（中文界面）
+- `src/ai_obs_lab/dashboard/tail.py` — 终端实时流水（中文表头）
 - `src/ai_obs_lab/dashboard/query.py` — `parse_request_context` 拆 system/tools/messages
-- `bin/obs.sh` — 无感观测包装层（claude-obs / cfuse-obs / obs）
+- `src/ai_obs_lab/core/store.py` — JSONL 存储，含 `append_mcp_frame` / `iter_mcp_sessions`
+- `bin/obs.sh` — 无感观测包装层（claude-obs / cfuse-obs / obs live / obs mcp）
 - `config/proxy.example.yaml` — proxy config template
 
 ## Important constraints

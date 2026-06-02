@@ -6,8 +6,10 @@
 #     claude-obs                 # 交互式 Claude Code，全程被观测
 #     claude-obs -p "你的问题"    # 单次
 #     cfuse-obs                  # 交互式 CodeFuse，全程被观测
-#     obs report                 # 打开 HTML 报告
-#     obs tail                   # 实时看请求流水
+#     obs live                   # 启动实时观测看板（浏览器自动刷新，推荐）
+#     obs mcp -- <命令>          # 包一层 stdio MCP server 抓取 JSON-RPC
+#     obs report                 # 生成静态 HTML 快照报告
+#     obs tail                   # 终端实时打印请求流水
 #     obs status / obs stop      # 代理状态 / 停止
 #
 # 原来的 claude / cfuse 命令完全不受影响。
@@ -95,6 +97,16 @@ obs() {
   local cmd="${1:-status}"
   shift 2>/dev/null
   case "$cmd" in
+    live|serve)
+      # 实时观测看板：浏览器自动刷新，新请求自动出现，可点开上下文面板
+      _obs_ensure_proxy
+      echo "[obs] 启动实时看板 http://127.0.0.1:8799（Ctrl-C 停止）" >&2
+      PYTHONPATH="${AI_OBS_LAB_HOME}/src" python3 -m ai_obs_lab.cli serve --open "$@"
+      ;;
+    mcp)
+      # 包一层 stdio MCP server 抓取 JSON-RPC，用法：obs mcp -- <你的 mcp 命令...>
+      PYTHONPATH="${AI_OBS_LAB_HOME}/src" python3 -m ai_obs_lab.cli mcp "$@"
+      ;;
     report)
       _obs_ensure_proxy
       PYTHONPATH="${AI_OBS_LAB_HOME}/src" python3 -m ai_obs_lab.cli report --date today --open "$@"
@@ -123,7 +135,14 @@ obs() {
       tail -n 80 "${AI_OBS_LAB_LOG}" 2>/dev/null || echo "[obs] 暂无日志"
       ;;
     *)
-      echo "用法: obs [status|report|tail|stop|logs]" >&2
+      echo "用法: obs <子命令>" >&2
+      echo "  live           启动实时观测看板（浏览器自动刷新，推荐）" >&2
+      echo "  mcp -- <命令>  包一层 stdio MCP server 抓取 JSON-RPC" >&2
+      echo "  report         生成静态 HTML 快照报告" >&2
+      echo "  tail           终端实时打印请求流水" >&2
+      echo "  status         查看代理状态" >&2
+      echo "  stop           停止后台代理" >&2
+      echo "  logs           查看代理日志" >&2
       echo "工具命令: claude-obs / cfuse-obs（参数与原命令一致）" >&2
       ;;
   esac

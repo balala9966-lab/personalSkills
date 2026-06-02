@@ -130,7 +130,93 @@ class JSONLStore:
         day.mkdir(parents=True, exist_ok=True)
         self._append_jsonl(day / "judge_results.jsonl", j.to_dict())
 
+    # --------------------------- stdio MCP -------------------------------
+
+    def write_mcp_meta(
+        self, session_id: str, command: str, ts_start: float, *, label: str | None = None
+    ) -> None:
+        """记录一次 stdio MCP 会话的元信息（命令、起始时间）。
+
+        与帧文件分开存放，便于看板快速列出会话而无需读全部帧。
+        """
+        mcp_dir = _day_dir(self.base_dir, ts_start) / "mcp"
+        mcp_dir.mkdir(parents=True, exist_ok=True)
+        meta = {
+            "session_id": session_id,
+            "command": command,
+            "label": label,
+            "ts_start": ts_start,
+        }
+        with self._lock:
+            (mcp_dir / f"{session_id}.meta.json").write_text(
+                json.dumps(meta, ensure_ascii=False, indent=2)
+            )
+
+    def append_mcp_frame(
+        self,
+        session_id: str,
+        ts: float,
+        direction: str,
+        payload: dict,
+        *,
+        method: str | None = None,
+        kind: str | None = None,
+    ) -> None:
+        """追加一帧 JSON-RPC（来自 stdio MCP wrapper 的 tee）。
+
+        direction: "client->server"（请求）或 "server->client"（响应/通知）。
+        payload: 原始 JSON-RPC 帧（保持原文，不做翻译）。
+        method/kind: 便于看板展示的冗余字段（如 tools/call、result、notification）。
+        """
+        mcp_dir = _day_dir(self.base_dir, ts) / "mcp"
+        mcp_dir.mkdir(parents=True, exist_ok=True)
+        frame = {
+            "ts": ts,
+            "direction": direction,
+            "method": method,
+            "kind": kind,
+            "payload": payload,
+        }
+        self._append_jsonl(mcp_dir / f"{session_id}.jsonl", frame)
+
     # ------------------------------ readers ------------------------------
+
+    def iter_mcp_sessions(
+        self, start: date | None = None, end: date | None = None
+    ) -> Iterator[dict]:
+        """聚合 stdio MCP 会话：每个会话返回元信息 + 全部帧。
+
+        返回结构对看板友好：
+            {"session_id", "command", "label", "ts_start", "frames": [...]}
+        会话按起始时间倒序（最近的在前）。
+        """
+        sessions: list[dict] = []
+        for d in self._iter_day_dirs(start, end):
+            mcp_dir = d / "mcp"
+            if not mcp_dir.exists():
+                continue
+            for frames_path in mcp_dir.glob("*.jsonl"):
+                session_id = frames_path.stem
+                meta_path = mcp_dir / f"{session_id}.meta.json"
+                meta = {}
+                if meta_path.exists():
+                    try:
+                        meta = json.loads(meta_path.read_text())
+                    except json.JSONDecodeError:
+                        meta = {}
+                frames = list(self._read_jsonl(frames_path))
+                ts_start = meta.get("ts_start")
+                if ts_start is None and frames:
+                    ts_start = frames[0].get("ts")
+                sessions.append({
+                    "session_id": session_id,
+                    "command": meta.get("command", ""),
+                    "label": meta.get("label"),
+                    "ts_start": ts_start,
+                    "frames": frames,
+                })
+        sessions.sort(key=lambda s: s.get("ts_start") or 0, reverse=True)
+        yield from sessions
 
     def iter_summaries(
         self, start: date | None = None, end: date | None = None
