@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "schema": "https://example.com/illustration-styles/v1",
+
+  "types": [
+    {"id": "infographic", "best_for": "data, metrics, technical breakdowns"},
+    {"id": "scene", "best_for": "narrative, emotional context, lifestyle"},
+    {"id": "flowchart", "best_for": "step-by-step processes, workflows"},
+    {"id": "comparison", "best_for": "side-by-side options, before/after"},
+    {"id": "framework", "best_for": "models, architectures, role relationships"},
+    {"id": "timeline", "best_for": "history, milestones, evolution"}
+  ],
+
+  "styles": [
+    {"id": "vector-illustration", "family": "flat", "doc": "styles/vector-illustration.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "strong", "comparison": "strong", "framework": "strong", "timeline": "ok"}},
+    {"id": "notion", "family": "flat", "doc": "styles/notion.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "strong", "comparison": "strong", "framework": "strong", "timeline": "strong"}},
+    {"id": "flat", "family": "flat", "doc": "styles/flat.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "strong", "comparison": "strong", "framework": "strong", "timeline": "ok"}},
+    {"id": "flat-doodle", "family": "flat", "doc": "styles/flat-doodle.md",
+     "compat_types": {"infographic": "ok", "scene": "ok", "flowchart": "ok", "comparison": "ok", "framework": "ok", "timeline": "ok"}},
+    {"id": "minimal", "family": "flat", "doc": "styles/minimal.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "ok", "comparison": "strong", "framework": "strong", "timeline": "ok"}},
+
+    {"id": "sketch", "family": "hand-drawn", "doc": "styles/sketch.md",
+     "compat_types": {"infographic": "ok", "scene": "strong", "flowchart": "ok", "comparison": "ok", "framework": "ok", "timeline": "ok"}},
+    {"id": "sketch-notes", "family": "hand-drawn", "doc": "styles/sketch-notes.md",
+     "compat_types": {"infographic": "strong", "scene": "strong", "flowchart": "strong", "comparison": "strong", "framework": "ok", "timeline": "strong"}},
+    {"id": "warm", "family": "hand-drawn", "doc": "styles/warm.md",
+     "compat_types": {"infographic": "ok", "scene": "strong", "flowchart": "ok", "comparison": "ok", "framework": "ok", "timeline": "ok"}},
+    {"id": "playful", "family": "hand-drawn", "doc": "styles/playful.md",
+     "compat_types": {"infographic": "ok", "scene": "strong", "flowchart": "ok", "comparison": "ok", "framework": "avoid", "timeline": "ok"}},
+    {"id": "ink-notes", "family": "hand-drawn", "doc": "styles/ink-notes.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "ok", "comparison": "strong", "framework": "ok", "timeline": "ok"}},
+
+    {"id": "blueprint", "family": "technical", "doc": "styles/blueprint.md",
+     "compat_types": {"infographic": "strong", "scene": "avoid", "flowchart": "strong", "comparison": "ok", "framework": "strong", "timeline": "ok"}},
+    {"id": "scientific", "family": "technical", "doc": "styles/scientific.md",
+     "compat_types": {"infographic": "strong", "scene": "avoid", "flowchart": "ok", "comparison": "ok", "framework": "strong", "timeline": "ok"}},
+    {"id": "editorial", "family": "technical", "doc": "styles/editorial.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "strong", "comparison": "strong", "framework": "ok", "timeline": "strong"}},
+    {"id": "chalkboard", "family": "technical", "doc": "styles/chalkboard.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "strong", "comparison": "ok", "framework": "strong", "timeline": "ok"}},
+
+    {"id": "watercolor", "family": "artistic", "doc": "styles/watercolor.md",
+     "compat_types": {"infographic": "ok", "scene": "strong", "flowchart": "avoid", "comparison": "ok", "framework": "avoid", "timeline": "strong"}},
+    {"id": "elegant", "family": "artistic", "doc": "styles/elegant.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "ok", "comparison": "strong", "framework": "strong", "timeline": "strong"}},
+    {"id": "nature", "family": "artistic", "doc": "styles/nature.md",
+     "compat_types": {"infographic": "ok", "scene": "strong", "flowchart": "avoid", "comparison": "ok", "framework": "avoid", "timeline": "ok"}},
+    {"id": "fantasy-animation", "family": "artistic", "doc": "styles/fantasy-animation.md",
+     "compat_types": {"infographic": "avoid", "scene": "strong", "flowchart": "avoid", "comparison": "avoid", "framework": "avoid", "timeline": "ok"}},
+
+    {"id": "screen-print", "family": "poster", "doc": "styles/screen-print.md",
+     "compat_types": {"infographic": "ok", "scene": "strong", "flowchart": "avoid", "comparison": "strong", "framework": "ok", "timeline": "ok"}},
+    {"id": "retro", "family": "poster", "doc": "styles/retro.md",
+     "compat_types": {"infographic": "ok", "scene": "ok", "flowchart": "ok", "comparison": "ok", "framework": "ok", "timeline": "ok"}},
+
+    {"id": "pixel-art", "family": "special", "doc": "styles/pixel-art.md",
+     "compat_types": {"infographic": "avoid", "scene": "strong", "flowchart": "avoid", "comparison": "avoid", "framework": "avoid", "timeline": "ok"}},
+    {"id": "vintage", "family": "special", "doc": "styles/vintage.md",
+     "compat_types": {"infographic": "ok", "scene": "strong", "flowchart": "avoid", "comparison": "ok", "framework": "avoid", "timeline": "strong"}},
+    {"id": "intuition-machine", "family": "special", "doc": "styles/intuition-machine.md",
+     "compat_types": {"infographic": "strong", "scene": "ok", "flowchart": "strong", "comparison": "ok", "framework": "strong", "timeline": "ok"}}
+  ],
+
+  "palettes": [
+    {"id": "macaron", "scope": "body", "use_case": "education, knowledge sharing, tutorials", "doc": "palettes/macaron.md"},
+    {"id": "warm", "scope": "both", "use_case": "lifestyle, products, emotional", "doc": "palettes/warm.md"},
+    {"id": "neon", "scope": "body", "use_case": "gaming, retro, pop culture", "doc": "palettes/neon.md"},
+    {"id": "mono-ink", "scope": "body", "use_case": "visual notes, manifestos", "doc": "palettes/mono-ink.md"},
+    {"id": "elegant", "scope": "cover", "use_case": "business, thought leadership", "doc": "palettes/elegant.md"},
+    {"id": "cool", "scope": "cover", "use_case": "tech, AI, engineering", "doc": "palettes/cool.md"},
+    {"id": "dark", "scope": "cover", "use_case": "deep tech, dark aesthetic", "doc": "palettes/dark.md"},
+    {"id": "earth", "scope": "cover", "use_case": "nature, sustainability, humanities", "doc": "palettes/earth.md"},
+    {"id": "vivid", "scope": "cover", "use_case": "fashion, creative, internet culture", "doc": "palettes/vivid.md"},
+    {"id": "pastel", "scope": "cover", "use_case": "light content, illustrative", "doc": "palettes/pastel.md"},
+    {"id": "mono", "scope": "cover", "use_case": "minimal, academic, formal", "doc": "palettes/mono.md"},
+    {"id": "retro", "scope": "cover", "use_case": "nostalgia, brand storytelling", "doc": "palettes/retro.md"},
+    {"id": "duotone", "scope": "cover", "use_case": "posters, visual punch", "doc": "palettes/duotone.md"}
+  ],
+
+  "presets": [
+    {"id": "tech-explainer", "type": "infographic", "style": "blueprint", "use_case": "API docs, system metrics, technical deep-dives"},
+    {"id": "system-design", "type": "framework", "style": "blueprint", "use_case": "architecture diagrams, system design"},
+    {"id": "architecture", "type": "framework", "style": "vector-illustration", "use_case": "component relationships, module structure"},
+    {"id": "science-paper", "type": "infographic", "style": "scientific", "use_case": "research findings, papers"},
+
+    {"id": "knowledge-base", "type": "infographic", "style": "vector-illustration", "use_case": "concept explanations, tutorials"},
+    {"id": "saas-guide", "type": "infographic", "style": "notion", "use_case": "product guides, SaaS docs"},
+    {"id": "tutorial", "type": "flowchart", "style": "vector-illustration", "use_case": "step-by-step guides"},
+    {"id": "process-flow", "type": "flowchart", "style": "notion", "use_case": "workflow docs, onboarding"},
+    {"id": "edu-visual", "type": "infographic", "style": "vector-illustration", "palette": "macaron", "use_case": "knowledge summaries, educational articles"},
+    {"id": "hand-drawn-edu", "type": "flowchart", "style": "sketch-notes", "palette": "macaron", "use_case": "hand-drawn educational diagrams"},
+    {"id": "ink-notes-compare", "type": "comparison", "style": "ink-notes", "palette": "mono-ink", "use_case": "before/after, traditional vs new"},
+
+    {"id": "data-report", "type": "infographic", "style": "editorial", "use_case": "data reporting, dashboards"},
+    {"id": "versus", "type": "comparison", "style": "vector-illustration", "use_case": "technical comparison, framework face-offs"},
+    {"id": "business-compare", "type": "comparison", "style": "elegant", "use_case": "product evaluation, strategy options"},
+
+    {"id": "storytelling", "type": "scene", "style": "warm", "use_case": "personal essays, reflections"},
+    {"id": "lifestyle", "type": "scene", "style": "watercolor", "use_case": "travel, wellness, creative"},
+    {"id": "history", "type": "timeline", "style": "elegant", "use_case": "history overviews, milestones"},
+    {"id": "evolution", "type": "timeline", "style": "warm", "use_case": "progress narratives, growth journeys"},
+
+    {"id": "opinion-piece", "type": "scene", "style": "screen-print", "use_case": "commentary, critical pieces"},
+    {"id": "editorial-poster", "type": "comparison", "style": "screen-print", "use_case": "debates, opposing viewpoints"},
+    {"id": "cinematic", "type": "scene", "style": "screen-print", "use_case": "dramatic narrative, cultural essays"}
+  ],
+
+  "auto_recommend": {
+    "technical": {"first": "tech-explainer", "alt": "system-design"},
+    "tutorial": {"first": "tutorial", "alt": "process-flow"},
+    "methodology": {"first": "system-design", "alt": "architecture"},
+    "data": {"first": "data-report", "alt": "versus"},
+    "comparison": {"first": "versus", "alt": "business-compare"},
+    "narrative": {"first": "storytelling", "alt": "lifestyle"},
+    "opinion": {"first": "opinion-piece", "alt": "cinematic"},
+    "history": {"first": "history", "alt": "evolution"},
+    "academic": {"first": "science-paper", "alt": "tech-explainer"},
+    "saas": {"first": "saas-guide", "alt": "knowledge-base"},
+    "unknown": {"first": "knowledge-base", "alt": "tech-explainer"}
+  },
+
+  "density_by_word_count": [
+    {"max_words": 500, "density": "minimal", "image_count_range": [1, 2]},
+    {"max_words": 1500, "density": "balanced", "image_count_range": [3, 5]},
+    {"max_words": 4000, "density": "per-section", "image_count_range": null},
+    {"max_words": null, "density": "per-section", "image_count_range": [6, null]}
+  ],
+
+  "palette_signals": {
+    "tech_ai_programming": ["cool", "dark"],
+    "business_strategy": ["elegant"],
+    "education_tutorial": ["macaron"],
+    "lifestyle_emotion": ["warm"],
+    "nature_sustainability": ["earth"],
+    "opinion_commentary": ["duotone", "vivid"],
+    "visual_notes": ["mono-ink"]
+  }
+}

@@ -222,7 +222,7 @@ Do NOT trigger for:
 | 源类型 | 适配器 | 检测规则 |
 |--------|--------|---------|
 | Web 文章 | `web` | `http(s)://` 非已知笔记平台域名 |
-| 语雀文章 | `yuque` | `yuque.com/` 或 `yuque.antfin.com/` |
+| 语雀文章 | `yuque` | `yuque.com/` URL |
 | 语雀知识库 | `yuque` | 语雀 repo URL 或用户指定为「整个知识库」|
 | 飞书文档 | `feishu` | `feishu.cn/` 或 `larksuite.com/` |
 | YouTube 视频 | `youtube` | `youtube.com/watch` 或 `youtu.be/` |

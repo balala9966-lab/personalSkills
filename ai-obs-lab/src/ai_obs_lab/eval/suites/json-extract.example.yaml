@@ -1,0 +1,22 @@
+name: json-extract
+upstream: openai
+model: gpt-4o-mini
+temperature: 0.8
+max_tokens: 256
+versions:
+  - id: v1-loose
+    system: "Extract fields as JSON."
+  - id: v2-strict
+    system: |
+      You are a JSON extractor. Return ONLY a valid JSON object with EXACTLY
+      these keys: name (string), age (integer), city (string). No prose,
+      no markdown fences, no extra keys.
+cases:
+  - id: case-john
+    user: "John, 29, lives in Hangzhou."
+    expect_schema: {"type": "object", "required": ["name", "age", "city"], "properties": {"name": {"type": "string"}, "age": {"type": "integer"}, "city": {"type": "string"}}}
+    expect_keywords: ["Hangzhou"]
+  - id: case-lily
+    user: "Meet Lily — she's 34 and based out of Shanghai for the past decade."
+    expect_schema: {"type": "object", "required": ["name", "age", "city"]}
+    expect_keywords: ["Shanghai"]

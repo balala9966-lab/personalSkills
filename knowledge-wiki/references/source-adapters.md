@@ -39,7 +39,7 @@ to_markdown(raw_content) -> markdown    # 转换为 Markdown
 
 ### Yuque Adapter
 
-**检测规则**：URL 包含 `yuque.com` 或 `yuque.antfin.com`。
+**检测规则**：URL 包含 `yuque.com`。
 
 **单篇文章**（3+ 路径段）：
 1. `skylark_resolve_url(url)` → doc_id

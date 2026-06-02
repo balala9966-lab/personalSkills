@@ -116,7 +116,7 @@ def _sort_targets(targets: List[Dict]) -> List[Dict]:
     )
 
 # ---------------------------------------------------------------------------
-# source.type 归一化（v2.0 → v2.1 兼容：旧 'tnpm' → 'private-npm'）
+# source.type 归一化（v2.0 → v2.1 兼容）
 # ---------------------------------------------------------------------------
 
 # 兼容映射表：把已废弃/非通用的 source.type 值归一化成对外通用名
@@ -126,7 +126,7 @@ _SOURCE_TYPE_ALIASES = {
 
 def _normalize_source(source) -> Optional[Dict]:
     """归一化 skill.source 字段：
-    - 把已废弃的 type 值（如 'tnpm'）映射为通用名（'private-npm'）
+    - 把已废弃的 type 值映射为通用名（'private-npm'）
     - 非 dict 输入返回 None
     """
     if not isinstance(source, dict):

@@ -1,0 +1,46 @@
+# The default backend used when no --backend / --alias is given.
+default_backend: openai_images
+
+# Fallback order if the requested backend fails (NOT YET IMPLEMENTED — for future use).
+fallback_chain: [openai_images, openai_compat]
+
+backends:
+  # Public OpenAI Images API. Most reliable, the recommended default.
+  openai_images:
+    type: openai_images
+    api_key_env: OPENAI_API_KEY
+    base_url: https://api.openai.com/v1
+    default_model: gpt-image-1
+    timeout: 180
+    quality: high                # low | medium | high | auto
+
+  # Example: Azure OpenAI Images.
+  # Azure expects a deployment-specific URL and a 'api-version' query param.
+  azure_openai:
+    type: openai_compat
+    api_key_env: AZURE_OPENAI_KEY
+    base_url: https://YOUR-RESOURCE.openai.azure.com/openai/deployments/gpt-image-1
+    extra_query: { api-version: "2024-08-01-preview" }
+    default_model: gpt-image-1
+
+  # Example: OpenRouter relay (note: not all models on OpenRouter implement images; check before using).
+  openrouter:
+    type: openai_compat
+    api_key_env: OPENROUTER_API_KEY
+    base_url: https://openrouter.ai/api/v1
+    extra_headers:
+      HTTP-Referer: https://your-app.example.com
+      X-Title: my-illustration-workflow
+    default_model: openai/gpt-image-1
+
+  # Google Gemini Imagen. Requires: pip install google-generativeai
+  gemini:
+    type: gemini_imagen
+    api_key_env: GEMINI_API_KEY
+    default_model: imagen-3.0-generate-002
+
+# Friendly aliases.
+aliases:
+  gpt-image: { backend: openai_images, model: gpt-image-1 }
+  imagen:    { backend: gemini, model: imagen-3.0-generate-002 }
+  imagen-fast: { backend: gemini, model: imagen-3.0-fast-generate-001 }

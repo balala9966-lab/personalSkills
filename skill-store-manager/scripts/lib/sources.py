@@ -4,7 +4,7 @@
 支持的来源：
 - local:        本地路径（拷贝/移动）
 - git:          git clone
-- private-npm:  私有 npm 包安装（运行时优先 'tnpm' 命令，回退 'npm'）
+- private-npm:  私有 npm 包安装（运行时优先私有 npm 客户端，回退 'npm'）
 - url:          下载 zip / tar.gz 并解压
 
 每个 install_from_xxx 函数返回 (skill_dir, version, source_ref)，
@@ -177,12 +177,11 @@ def install_from_git(source: str, ref: Optional[str] = None) -> Tuple[Path, str,
 def install_from_private_npm(package: str) -> Tuple[Path, str, str]:
     """通过 npm pack 下载 tarball 并解压到临时目录。
 
-    运行时优先使用 'tnpm' 命令（如本机存在），回退到 'npm'。
-    'tnpm' 是部分企业内部 npm 客户端的常见名字；外部用户只需安装 npm 即可。
+    运行时优先使用私有 npm 客户端（如本机存在），回退到 'npm'。
     """
     pm = "tnpm" if shutil.which("tnpm") else ("npm" if shutil.which("npm") else None)
     if pm is None:
-        raise EnvironmentError("未找到 npm 命令（也未检测到 tnpm）；请先安装 npm")
+        raise EnvironmentError("未找到 npm 命令；请先安装 npm")
 
     tmp_root = Path(tempfile.mkdtemp(prefix=f"skill-store-{pm}-"))
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Editorial Illustration"
+  short_description: "Generate strange editorial article illustrations"
+  default_prompt: "Use $editorial-illustration to create a shot list and illustrations for this article."

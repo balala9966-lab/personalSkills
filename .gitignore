@@ -58,5 +58,8 @@ venv/
 # ===== Internal: AI agent plan/task scratch space (not for upload) =====
 .aone_copilot/
 
+# ===== Local Claude settings (may contain session-specific permissions/paths) =====
+.claude/settings.local.json
+
 # ===== skill-store-manager test artifacts =====
 skill-store-manager/scripts/tests/.tmp/
