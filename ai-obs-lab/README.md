@@ -296,15 +296,41 @@ ai-obs-lab/
 └── tests/                          # stdlib unittest（含 test_server / test_mcp_stdio）
 ```
 
-## What's NOT here yet (Roadmap → Phase 2 candidates)
+## Phase 2 进展（已落地）
 
-- **FastAPI Web UI** — `dashboard/query.py` is already pure and stdlib-only so
-  Phase 2 just adds a thin FastAPI layer over it.（注：实时看板 `obs live` 已用
-  stdlib `http.server` 实现了核心诉求，Phase 2 仅做框架升级。）
-- **DuckDB/SQLite store** — `core.store.Store` is a Protocol; swap the
-  implementation when JSONL gets too big to scan.
-- **Parallel eval execution** — runner is currently sequential.
-- **PromptFoo / OpenAI Evals interop** — import / export their suite schemas.
+以下原 Roadmap 项现已实现，且全部遵守"零依赖默认、可选 backend 增强"的原则：
+
+- **SQLite store** — `core.sqlite_store.SQLiteStore` 用 stdlib `sqlite3` 实现了
+  与 `JSONLStore` 等价的 `Store` 接口；`SQLiteStore.from_jsonl(<日志目录>)` 可把
+  现有 JSONL 数据一键迁移进单库文件，应对 JSONL 扫描变慢的场景。
+- **并行 eval 执行** — `eval/runner.run_suite(..., concurrency=N)` 用
+  `ThreadPoolExecutor` 并行每个 `(version, case)` 的 N 次 repeat；结果按 repeat
+  序确定性聚合。CLI：`eval --concurrency N`（默认 1，保持串行向后兼容）。
+- **PromptFoo / OpenAI Evals 互操作** — `eval/interop.py` 支持双向转换：
+
+  ```bash
+  PYTHONPATH=src python3 -m ai_obs_lab.cli interop import-promptfoo pf.yaml --out suite.yaml
+  PYTHONPATH=src python3 -m ai_obs_lab.cli interop import-openai-evals samples.jsonl --out suite.yaml
+  PYTHONPATH=src python3 -m ai_obs_lab.cli interop export-promptfoo suite.yaml --out pf.json
+  PYTHONPATH=src python3 -m ai_obs_lab.cli interop export-openai-evals suite.yaml --out samples.jsonl
+  ```
+
+- **FastAPI Web UI（可选 backend）** — `dashboard/web/app.py` 是 `dashboard/query.py`
+  纯函数之上的薄 FastAPI 层，端点与 stdlib 看板完全一致。默认仍走零依赖 stdlib
+  实现；安装 `pip install '.[web]'` 后可用 FastAPI：
+
+  ```bash
+  PYTHONPATH=src python3 -m ai_obs_lab.cli serve --backend fastapi --open
+  ```
+
+  **未安装 fastapi 时自动降级回 stdlib 看板，不会报错退出**，保持零安装即可运行。
+
+## What's still NOT here yet
+
+- **DuckDB store** — `SQLiteStore` 已覆盖大多数规模诉求；`pyproject.toml` 预留了
+  `[duckdb]` extra，需要列式分析时再补 `DuckDBStore` 实现同一 Protocol。
+- **Parallel eval across (version, case) pairs** — 当前并行粒度是单个 pair 内的
+  repeat；跨 pair 的并行可进一步压缩墙钟时间。
 
 ## Phase 2: how to extract
 

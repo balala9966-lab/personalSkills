@@ -16,6 +16,7 @@ import os
 import sys
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -420,6 +421,88 @@ def _extract_chosen_logprobs(raw_text: str) -> list[float] | None:
 # ---------------------------------------------------------------------------
 
 
+@dataclass
+class _RepeatOutcome:
+    """Result of one independent (version, case, repeat-index) upstream call."""
+
+    trace_id: str
+    output: str
+    ttft_ms: float
+    total_ms: float
+    tokens_out: int | None
+    logprobs: list[float]
+    ok: bool
+
+
+def _run_one_repeat(
+    suite: Suite,
+    version: SuiteVersion,
+    case: SuiteCase,
+    k: int,
+    eval_run_id: str,
+    store: JSONLStore,
+    api_key: str | None,
+    want_logprobs: bool,
+) -> _RepeatOutcome:
+    """Execute a single upstream call and persist its trace.
+
+    Pure with respect to shared mutable state except for `store`, which is
+    thread-safe (coarse lock). Safe to call concurrently across repeats.
+    """
+    if suite.upstream == "anthropic":
+        payload = _build_anthropic_payload(suite, version, case)
+    else:
+        payload = _build_openai_payload(suite, version, case, want_logprobs)
+    status, text, ttft_ms, total_ms, chosen_lp = _call_upstream(suite, payload, api_key)
+    ok = 200 <= status < 300
+    out_text = _extract_output_text(suite, text) if ok else ""
+    tin, tout = _extract_usage(suite, text)
+
+    trace_id = f"eval-{eval_run_id}-{version.id}-{case.id}-{k}"
+    summary = TraceSummary(
+        trace_id=trace_id,
+        ts_start=time.time(),
+        client_hint=f"eval:{eval_run_id}",
+        upstream=suite.upstream,
+        method="POST",
+        path=_endpoint_url(suite),
+        model=suite.model,
+        status=status,
+        ttft_ms=ttft_ms,
+        total_ms=total_ms,
+        tokens_in=tin,
+        tokens_out=tout,
+        chunks=None,
+        tool_call_count=0,
+        error=None if ok else f"status={status}",
+    )
+    tf = TraceFull(
+        summary=summary,
+        request_headers={"x-eval-run": eval_run_id, "x-version": version.id, "x-case": case.id},
+        request_body=payload,
+        response_headers={},
+        response_text=text,
+        chunks=[],
+        tool_calls=[],
+        pauses_ms=[],
+    )
+    try:
+        store.append_summary(summary)
+        store.write_trace(tf)
+    except Exception as e:
+        sys.stderr.write(f"[eval] persist failed: {e}\n")
+
+    return _RepeatOutcome(
+        trace_id=trace_id,
+        output=out_text,
+        ttft_ms=ttft_ms,
+        total_ms=total_ms,
+        tokens_out=tout,
+        logprobs=chosen_lp or [],
+        ok=ok,
+    )
+
+
 def run_suite(
     suite: Suite,
     *,
@@ -427,6 +510,7 @@ def run_suite(
     store: JSONLStore,
     api_key: str | None = None,
     want_logprobs: bool = False,
+    concurrency: int = 1,
 ) -> EvalRun:
     eval_run_id = f"er-{uuid.uuid4().hex[:10]}"
     ts_start = time.time()
@@ -444,69 +528,37 @@ def run_suite(
         results=[],
     )
 
+    workers = max(1, concurrency)
     for version in suite.versions:
         for case in suite.cases:
-            outputs: list[str] = []
-            ttfts: list[float] = []
-            totals: list[float] = []
-            out_tokens: list[int] = []
-            lp_seqs: list[list[float]] = []
-            errors = 0
-            trace_ids: list[str] = []
-            for k in range(repeat):
-                if suite.upstream == "anthropic":
-                    payload = _build_anthropic_payload(suite, version, case)
-                else:
-                    payload = _build_openai_payload(suite, version, case, want_logprobs)
-                status, text, ttft_ms, total_ms, chosen_lp = _call_upstream(suite, payload, api_key)
-                ok = 200 <= status < 300
-                out_text = _extract_output_text(suite, text) if ok else ""
-                outputs.append(out_text)
-                ttfts.append(ttft_ms)
-                totals.append(total_ms)
-                tin, tout = _extract_usage(suite, text)
-                if tout is not None:
-                    out_tokens.append(int(tout))
-                if chosen_lp:
-                    lp_seqs.append(chosen_lp)
-                if not ok:
-                    errors += 1
+            # Run the `repeat` independent calls, optionally in parallel. Results
+            # are reassembled in repeat order (by k) so aggregated metrics are
+            # deterministic regardless of completion order.
+            repeats_out: list[_RepeatOutcome] = [None] * repeat  # type: ignore[list-item]
+            if workers == 1:
+                for k in range(repeat):
+                    repeats_out[k] = _run_one_repeat(
+                        suite, version, case, k, eval_run_id, store, api_key, want_logprobs
+                    )
+            else:
+                with ThreadPoolExecutor(max_workers=workers) as pool:
+                    futures = {
+                        pool.submit(
+                            _run_one_repeat, suite, version, case, k,
+                            eval_run_id, store, api_key, want_logprobs,
+                        ): k
+                        for k in range(repeat)
+                    }
+                    for fut in as_completed(futures):
+                        repeats_out[futures[fut]] = fut.result()
 
-                # Persist as a trace so the dashboard can find it.
-                trace_id = f"eval-{eval_run_id}-{version.id}-{case.id}-{k}"
-                trace_ids.append(trace_id)
-                summary = TraceSummary(
-                    trace_id=trace_id,
-                    ts_start=time.time(),
-                    client_hint=f"eval:{eval_run_id}",
-                    upstream=suite.upstream,
-                    method="POST",
-                    path=_endpoint_url(suite),
-                    model=suite.model,
-                    status=status,
-                    ttft_ms=ttft_ms,
-                    total_ms=total_ms,
-                    tokens_in=tin,
-                    tokens_out=tout,
-                    chunks=None,
-                    tool_call_count=0,
-                    error=None if ok else f"status={status}",
-                )
-                tf = TraceFull(
-                    summary=summary,
-                    request_headers={"x-eval-run": eval_run_id, "x-version": version.id, "x-case": case.id},
-                    request_body=payload,
-                    response_headers={},
-                    response_text=text,
-                    chunks=[],
-                    tool_calls=[],
-                    pauses_ms=[],
-                )
-                try:
-                    store.append_summary(summary)
-                    store.write_trace(tf)
-                except Exception as e:
-                    sys.stderr.write(f"[eval] persist failed: {e}\n")
+            outputs = [r.output for r in repeats_out]
+            ttfts = [r.ttft_ms for r in repeats_out]
+            totals = [r.total_ms for r in repeats_out]
+            out_tokens = [int(r.tokens_out) for r in repeats_out if r.tokens_out is not None]
+            lp_seqs = [r.logprobs for r in repeats_out if r.logprobs]
+            errors = sum(1 for r in repeats_out if not r.ok)
+            trace_ids = [r.trace_id for r in repeats_out]
 
             result = EvalCaseResult(
                 version_id=version.id,
@@ -538,6 +590,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="ai_obs_lab.eval.runner")
     p.add_argument("--suite", required=True, help="Path to suite YAML")
     p.add_argument("--repeat", type=int, default=1)
+    p.add_argument("--concurrency", type=int, default=1,
+                   help="Parallel upstream calls per (version, case). Default 1 (sequential).")
     p.add_argument("--logprobs", action="store_true", help="OpenAI: request logprobs=true")
     p.add_argument("--log-dir", default=None)
     p.add_argument("--judge", action="store_true", help="Run LLM-as-Judge after eval")
@@ -546,7 +600,8 @@ def main(argv: list[str] | None = None) -> int:
 
     suite = load_suite(args.suite)
     store = JSONLStore(args.log_dir) if args.log_dir else JSONLStore()
-    er = run_suite(suite, repeat=args.repeat, store=store, want_logprobs=args.logprobs)
+    er = run_suite(suite, repeat=args.repeat, store=store,
+                   want_logprobs=args.logprobs, concurrency=args.concurrency)
     er.suite_path = str(Path(args.suite).resolve())
     sys.stdout.write(json.dumps({
         "eval_run_id": er.eval_run_id,

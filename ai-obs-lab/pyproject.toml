@@ -11,7 +11,10 @@ requires-python = ">=3.10"
 dependencies = []  # Phase 1 intentionally has no third-party deps (stdlib only)
 
 [project.optional-dependencies]
-# Phase 2 will likely add: fastapi, uvicorn, duckdb
+# Optional Phase 2 backends. The toolkit runs fully on stdlib without these;
+# install an extra only to opt into the corresponding richer backend.
+web = ["fastapi>=0.110", "uvicorn>=0.27"]   # `serve --backend fastapi`
+store = ["duckdb>=0.10"]                      # future DuckDB-backed Store
 dev = []
 
 # Phase 2: uncomment to enable `aolab` CLI after `pip install -e .`

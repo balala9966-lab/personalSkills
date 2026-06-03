@@ -58,6 +58,7 @@ def _cmd_eval(args: argparse.Namespace) -> int:
         repeat=args.repeat,
         store=store,
         want_logprobs=args.logprobs,
+        concurrency=args.concurrency,
     )
     er.suite_path = str(Path(args.suite).resolve())
 
@@ -121,10 +122,27 @@ def _cmd_tail(args: argparse.Namespace) -> int:
 
 
 def _cmd_serve(args: argparse.Namespace) -> int:
-    """实时观测看板（常驻 HTTP 服务，浏览器自动刷新）。"""
-    from .dashboard.server import run_server
+    """实时观测看板（常驻 HTTP 服务，浏览器自动刷新）。
+
+    --backend stdlib  : 零依赖的 http.server 实现（默认）
+    --backend fastapi : FastAPI + uvicorn（需 pip install '.[web]'）；
+                        未安装时自动降级回 stdlib，不会报错退出。
+    """
     from .core.store import JSONLStore
     store = JSONLStore(args.log_dir) if args.log_dir else JSONLStore()
+
+    if args.backend == "fastapi":
+        from .dashboard.web.app import fastapi_available
+        if fastapi_available():
+            from .dashboard.web.app import run_server as run_fastapi
+            run_fastapi(store, host=args.host, port=args.port, open_browser=args.open)
+            return 0
+        sys.stderr.write(
+            "[cli] 未检测到 FastAPI，降级到 stdlib 看板。"
+            "如需 FastAPI 后端请安装：pip install '.[web]'\n"
+        )
+
+    from .dashboard.server import run_server
     run_server(store, host=args.host, port=args.port, open_browser=args.open)
     return 0
 
@@ -141,6 +159,66 @@ def _cmd_mcp(args: argparse.Namespace) -> int:
         sys.stderr.write("[cli] 用法: ai_obs_lab.cli mcp -- <mcp server 命令...>\n")
         return 2
     return run_mcp_wrapper(args.command, store=store, label=args.label)
+
+
+def _cmd_interop(args: argparse.Namespace) -> int:
+    """在本项目 Suite 与 PromptFoo / OpenAI Evals 之间互转。
+
+    用法：
+        ai_obs_lab.cli interop import-promptfoo <pf.yaml> --out suite.yaml
+        ai_obs_lab.cli interop import-openai-evals <samples.jsonl> --out suite.yaml
+        ai_obs_lab.cli interop export-promptfoo <suite.yaml> --out pf.json
+        ai_obs_lab.cli interop export-openai-evals <suite.yaml> --out samples.jsonl
+    """
+    from .eval import interop
+    from .eval.runner import load_suite
+    import json as _json
+
+    action = args.action
+    out = args.out
+
+    if action == "import-promptfoo":
+        suite = interop.import_promptfoo(args.path)
+        _emit_suite_summary(suite, out)
+    elif action == "import-openai-evals":
+        suite = interop.import_openai_evals(args.path)
+        _emit_suite_summary(suite, out)
+    elif action == "export-promptfoo":
+        suite = load_suite(args.path)
+        payload = _json.dumps(interop.export_promptfoo(suite), ensure_ascii=False, indent=2)
+        _write_or_print(payload, out)
+    elif action == "export-openai-evals":
+        suite = load_suite(args.path)
+        lines = "\n".join(
+            _json.dumps(rec, ensure_ascii=False)
+            for rec in interop.export_openai_evals(suite)
+        )
+        _write_or_print(lines, out)
+    else:
+        sys.stderr.write(f"[cli] unknown interop action: {action}\n")
+        return 2
+    return 0
+
+
+def _emit_suite_summary(suite, out: str | None) -> None:
+    import json as _json
+    info = {
+        "name": suite.name,
+        "upstream": suite.upstream,
+        "model": suite.model,
+        "versions": [v.id for v in suite.versions],
+        "cases": [c.id for c in suite.cases],
+    }
+    _write_or_print(_json.dumps(info, ensure_ascii=False, indent=2), out)
+
+
+def _write_or_print(content: str, out: str | None) -> None:
+    if out:
+        from pathlib import Path as _Path
+        _Path(out).expanduser().write_text(content + "\n", encoding="utf-8")
+        sys.stderr.write(f"[cli] wrote {out}\n")
+    else:
+        sys.stdout.write(content + "\n")
 
 
 def _cmd_version(_args: argparse.Namespace) -> int:
@@ -160,6 +238,8 @@ def build_parser() -> argparse.ArgumentParser:
     se = sub.add_parser("eval", help="Run an A/B eval suite")
     se.add_argument("--suite", required=True)
     se.add_argument("--repeat", type=int, default=1)
+    se.add_argument("--concurrency", type=int, default=1,
+                    help="并行执行每个 (version, case) 的 repeat 调用，默认 1（串行）")
     se.add_argument("--logprobs", action="store_true")
     se.add_argument("--judge", action="store_true")
     se.add_argument("--judge-model", default="openai:gpt-4o-mini")
@@ -184,6 +264,8 @@ def build_parser() -> argparse.ArgumentParser:
     ss.add_argument("--host", default="127.0.0.1")
     ss.add_argument("--log-dir", default=None)
     ss.add_argument("--open", action="store_true", help="启动后自动打开浏览器")
+    ss.add_argument("--backend", choices=["stdlib", "fastapi"], default="stdlib",
+                    help="看板后端：stdlib（默认零依赖）或 fastapi（需 .[web]，未装则降级）")
     ss.set_defaults(func=_cmd_serve)
 
     sm = sub.add_parser("mcp", help="包一层 stdio MCP server，抓取 JSON-RPC 交互")
@@ -192,6 +274,15 @@ def build_parser() -> argparse.ArgumentParser:
     sm.add_argument("command", nargs=argparse.REMAINDER,
                     help="-- 之后是真实 mcp server 命令，例如：mcp -- npx some-mcp-server")
     sm.set_defaults(func=_cmd_mcp)
+
+    si = sub.add_parser("interop", help="与 PromptFoo / OpenAI Evals 套件互转")
+    si.add_argument("action", choices=[
+        "import-promptfoo", "import-openai-evals",
+        "export-promptfoo", "export-openai-evals",
+    ])
+    si.add_argument("path", help="输入文件（导入时为外部格式，导出时为本项目 suite YAML）")
+    si.add_argument("--out", default=None, help="输出文件路径；省略则打印到 stdout")
+    si.set_defaults(func=_cmd_interop)
 
     sv = sub.add_parser("version", help="Print version")
     sv.set_defaults(func=_cmd_version)
