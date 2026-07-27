@@ -2,5 +2,6 @@
   "id": "lemondog",
   "displayName": "LemonDog",
   "description": "一只可爱的黄色小狗狗，白色点缀，干净完整的宠物形象.",
-  "spritesheetPath": "spritesheet.webp"
+  "spritesheetPath": "spritesheet.webp",
+  "spriteVersionNumber": 2
 }
